@@ -1,0 +1,31 @@
+name: PHPStan Analysis
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  phpstan:
+    name: Execute PHPStan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, iconv, gd, igbinary, yaml
+          tools: composer:v2
+
+      - name: Install Composer dependencies
+        run: composer install --ignore-platform-reqs --no-interaction
+
+      - name: Validate PHP syntax
+        run: find src -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Analyze code with PHPStan
+        run: vendor/bin/phpstan analyse --error-format=table --no-progress --memory-limit=1G

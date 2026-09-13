@@ -1,0 +1,18 @@
+includes:
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+
+parameters:
+    level: 8
+
+    paths:
+        - src
+
+    treatPhpDocTypesAsCertain: true
+    checkMissingCallableSignature: true
+    checkUninitializedProperties: true
+    checkBenevolentUnionTypes: true
+    reportMaybesInPropertyPhpDocTypes: true
+    reportStaticMethodSignatures: true
+    reportUnmatchedIgnoredErrors: true
+
+    tmpDir: var/phpstan
