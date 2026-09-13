@@ -9,10 +9,11 @@ use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\network\mcpe\protocol\MovePlayerPacket;
 use pocketmine\player\Player;
+use pocketmine\world\ChunkLoader;
 use function atan2;
 use function sqrt;
 
-final class HallTopEntity extends Human {
+final class HallTopEntity extends Human implements ChunkLoader {
 
     private const LOOK_RADIUS_SQUARED = 100.0;
 

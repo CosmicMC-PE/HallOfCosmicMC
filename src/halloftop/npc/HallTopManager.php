@@ -95,7 +95,11 @@ final class HallTopManager implements Listener {
 
     public function shutdown(): void {
         foreach ($this->tops as $top) {
-            $top->getEntity()?->flagForDespawn();
+            $entity = $top->getEntity();
+            if ($entity !== null) {
+                $this->unregisterChunkLoader($entity, $top->getLocation());
+                $entity->flagForDespawn();
+            }
         }
         $this->tops = [];
         $this->onlineByName = [];
@@ -147,7 +151,11 @@ final class HallTopManager implements Listener {
             throw new \InvalidArgumentException("No existe un top para '$type'.");
         }
 
-        $top->getEntity()?->flagForDespawn();
+        $entity = $top->getEntity();
+        if ($entity !== null) {
+            $this->unregisterChunkLoader($entity, $top->getLocation());
+            $entity->flagForDespawn();
+        }
         unset($this->tops[$key]);
 
         $this->storage()->remove($key);
@@ -162,19 +170,18 @@ final class HallTopManager implements Listener {
             throw new \InvalidArgumentException("No existe un top para '$type'. Usa /halltop create primero.");
         }
 
-        $skin = clone $player->getSkin();
-        $nametag = $this->buildNameTag($key, $player);
-
-        $entity = $top->getEntity();
-        if ($entity === null || $entity->isClosed()) {
-            $entity = new HallTopEntity($top->getLocation(), $skin);
-            $entity->spawnToAll();
-            $top->setEntity($entity);
-        } else {
-            $entity->setSkin($skin);
-            $entity->sendSkin();
+        $existingEntity = $top->getEntity();
+        if ($existingEntity !== null) {
+            $this->unregisterChunkLoader($existingEntity, $top->getLocation());
+            $existingEntity->flagForDespawn();
         }
-        $entity->setNameTag($nametag);
+
+        $location = $top->getLocation();
+        $entity = new HallTopEntity($location, clone $player->getSkin());
+        $entity->setNameTag($this->buildNameTag($key, $player));
+        $entity->spawnToAll();
+        $this->registerChunkLoader($entity, $location);
+        $top->setEntity($entity);
 
         $top->setPlayerName($player->getName());
         $this->persist($key);
@@ -188,10 +195,16 @@ final class HallTopManager implements Listener {
             throw new \InvalidArgumentException("No existe un top para '$type'.");
         }
 
-        $location = $location->asLocation();
-        $top->setLocation($location);
-        $top->getEntity()?->teleport($location, $location->yaw, $location->pitch);
+        $newLocation = $location->asLocation();
 
+        $entity = $top->getEntity();
+        if ($entity !== null) {
+            $this->unregisterChunkLoader($entity, $top->getLocation());
+            $entity->teleport($newLocation, $newLocation->yaw, $newLocation->pitch);
+            $this->registerChunkLoader($entity, $newLocation);
+        }
+
+        $top->setLocation($newLocation);
         $this->persist($key);
     }
 
@@ -240,6 +253,17 @@ final class HallTopManager implements Listener {
         foreach ($this->tops as $top) {
             $top->getEntity()?->attemptLookAt($player);
         }
+    }
+
+    private function registerChunkLoader(HallTopEntity $entity, Location $location): void {
+        $location->getWorld()->registerChunkLoader($entity, $location->getFloorX() >> 4, $location->getFloorZ() >> 4, true);
+    }
+
+    private function unregisterChunkLoader(HallTopEntity $entity, Location $location): void {
+        if (!$location->isValid()) {
+            return;
+        }
+        $location->getWorld()->unregisterChunkLoader($entity, $location->getFloorX() >> 4, $location->getFloorZ() >> 4);
     }
 
     private function buildNameTag(string $type, Player $player): string {
@@ -341,6 +365,7 @@ final class HallTopManager implements Listener {
                     $entity = new HallTopEntity($location, $skin);
                     $entity->spawnToAll();
                     $entity->setNameTag($nametag);
+                    $this->registerChunkLoader($entity, $location);
                     $top->setEntity($entity);
                 }
             );
