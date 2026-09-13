@@ -3,7 +3,7 @@ version: "1.0.0"
 main: halloftop\Loader
 api: ["5.0.0"]
 author: Phoenix4041
-description: NPCs that showcase your server's manually-assigned Top 1 players.
+description: NPCs that showcase your server's manually-assigned Top 1 players
 softdepend:
   - CosmicMC
 permissions:
