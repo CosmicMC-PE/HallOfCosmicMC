@@ -11,6 +11,7 @@ use pocketmine\entity\Location;
 use pocketmine\entity\Skin;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerJoinEvent;
+use pocketmine\event\player\PlayerMoveEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\player\Player;
@@ -34,6 +35,7 @@ use function is_dir;
 use function is_string;
 use function mkdir;
 use function strtolower;
+use function strtoupper;
 
 final class HallTopManager implements Listener {
     use SingletonTrait;
@@ -161,12 +163,7 @@ final class HallTopManager implements Listener {
         }
 
         $skin = clone $player->getSkin();
-
-        $lines = [TextFormat::colorize("&b&l" . $player->getName())];
-        foreach (VortexPlayerInfo::describe($player) as $line) {
-            $lines[] = $line;
-        }
-        $nametag = implode("\n", $lines);
+        $nametag = $this->buildNameTag($key, $player);
 
         $entity = $top->getEntity();
         if ($entity === null || $entity->isClosed()) {
@@ -227,10 +224,38 @@ final class HallTopManager implements Listener {
     public function onPlayerJoin(PlayerJoinEvent $event): void {
         $player = $event->getPlayer();
         $this->onlineByName[strtolower($player->getName())] = $player;
+
+        foreach ($this->tops as $top) {
+            $top->getEntity()?->attemptLookAt($player);
+        }
     }
 
     public function onPlayerQuit(PlayerQuitEvent $event): void {
         unset($this->onlineByName[strtolower($event->getPlayer()->getName())]);
+    }
+
+    public function onPlayerMove(PlayerMoveEvent $event): void {
+        $player = $event->getPlayer();
+
+        foreach ($this->tops as $top) {
+            $top->getEntity()?->attemptLookAt($player);
+        }
+    }
+
+    private function buildNameTag(string $type, Player $player): string {
+        $header = TextFormat::colorize("&6&lTOP 1 &e" . strtoupper($type));
+
+        $info = VortexPlayerInfo::describe($player);
+        $line2 = [];
+        if ($info["rank"] !== null) {
+            $line2[] = $info["rank"];
+        }
+        if ($info["faction"] !== null) {
+            $line2[] = TextFormat::GRAY . "[" . $info["faction"] . "]";
+        }
+        $line2[] = TextFormat::WHITE . $player->getName();
+
+        return implode("\n", [$header, implode(" ", $line2)]);
     }
 
     private function persist(string $key): void {

@@ -18,28 +18,28 @@ final class VortexPlayerInfo {
     private function __construct() {}
 
     /**
-     * @return list<string>
+     * @return array{rank: ?string, faction: ?string}
      */
     public static function describe(Player $player): array {
-        $lines = [];
-
-        $rank = self::call($player, "getRank");
-        if (is_object($rank)) {
-            $display = self::call($rank, "getDisplay");
+        $rank = null;
+        $rankObject = self::call($player, "getRank");
+        if (is_object($rankObject)) {
+            $display = self::call($rankObject, "getDisplay");
             if (is_string($display) && $display !== "") {
-                $lines[] = TextFormat::colorize($display);
+                $rank = TextFormat::colorize($display);
             }
         }
 
-        $faction = self::call($player, "getFaction");
-        if (is_object($faction)) {
-            $name = self::call($faction, "getName");
+        $faction = null;
+        $factionObject = self::call($player, "getFaction");
+        if (is_object($factionObject)) {
+            $name = self::call($factionObject, "getName");
             if (is_string($name) && $name !== "") {
-                $lines[] = $name;
+                $faction = $name;
             }
         }
 
-        return $lines;
+        return ["rank" => $rank, "faction" => $faction];
     }
 
     private static function call(object $target, string $method): mixed {
